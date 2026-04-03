@@ -1,84 +1,70 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PortfolioPro — Бесплатный Крипто-Трекер 2026</title>
-    <meta name="description" content="Отслеживай свой крипто-портфель в реальном времени. Реальные цены, бесплатно.">
-    <meta property="og:title" content="PortfolioPro — Крипто Трекер 2026">
-    <meta property="og:description" content="Реальные цены на BTC, ETH, SOL и тысячи монет. Бесплатно.">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>Crypto Tracker | Pixel Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://checkout.nowpayments.io/checkout.js" defer></script>
 </head>
 <body>
-    <div class="bg-glow"></div>
+    <div class="pixel-overlay"></div>
+    
+    <header class="pixel-box">
+        <h1 class="glitch" data-text="PIXEL_TRACKER">PIXEL_TRACKER</h1>
+        <p>REAL-TIME CRYPTO PORTFOLIO</p>
+    </header>
 
-    <div class="app-container">
-        <header>
-            <div class="logo">PORTFOLIO<span>PRO</span></div>
-            <button id="upgrade-btn" class="upgrade-btn">⚡ PREMIUM — €19</button>
-        </header>
+    <main>
+        <section class="dashboard">
+            <div class="pixel-box main-balance">
+                <h2>TOTAL BALANCE</h2>
+                <div id="total-balance" class="balance-amount">$0.00</div>
+                <div id="balance-change" class="change up">+0.00% (24H)</div>
+                <div id="last-update" class="update-time">LAST UPDATE: SYNCING...</div>
+            </div>
 
-        <section class="balance-card">
-            <span class="label">Общий портфель</span>
-            <h2 id="total-balance">$0.00</h2>
-            <div id="balance-change" class="change">— Добавь активы ниже</div>
-        </section>
-
-        <section class="add-asset">
-            <div class="add-row">
-                <input type="text" id="asset-name" placeholder="BTC / ETH / SOL..." autocomplete="off">
-                <input type="number" id="asset-amount" placeholder="Кол-во" step="any" min="0">
-                <button id="add-btn" class="add-btn">+</button>
+            <div class="pixel-box premium-ad" id="premium-ad-box">
+                <p>STATUS: <span style="color:#ffea00">FREE TIER</span> (3 COINS LIMIT)</p>
+                <button id="upgrade-btn" class="pixel-btn yellow glitch-btn">UPGRADE TO PRO (€19/MO)</button>
             </div>
         </section>
 
-        <div class="divider">Твои активы</div>
+        <section class="pixel-box add-bar">
+            <input type="text" id="asset-name" placeholder="COIN (BTC, ETH...)" class="pixel-input">
+            <input type="number" id="asset-amount" placeholder="AMOUNT" class="pixel-input" step="any">
+            <button id="add-btn" class="pixel-btn green">ADD [+]</button>
+        </section>
 
-        <div class="assets-list" id="assets-container">
-            <p class="empty-state">Добавь первый актив выше 👆</p>
-        </div>
+        <section class="assets" id="assets-container">
+            <!-- Assets will be injected here -->
+            <p class="empty-state">NO ASSETS DETECTED. INITIALIZE ABOVE.</p>
+        </section>
+    </main>
 
-        <div class="footer-links">
-            <a href="../crypto-affiliate-hub/index.html">🏦 Топ биржи</a>
-            <span>|</span>
-            <span id="last-update">Обновление...</span>
-        </div>
-    </div>
-
-    <!-- Premium Modal -->
-    <div id="premium-modal" class="modal-overlay">
-        <div class="modal-box">
-            <button class="close-modal" id="close-modal">✕</button>
-            <div class="modal-icon">⚡</div>
-            <h3>Разблокируй Premium</h3>
-            <ul class="feature-list">
-                <li>✅ Синхронизация с биржами (Binance, Bybit)</li>
-                <li>✅ Уведомления о изменении цены</li>
-                <li>✅ История портфеля (графики)</li>
-                <li>✅ DeFi & NFT в портфеле</li>
-                <li>✅ Без рекламы навсегда</li>
+    <!-- PREMIUM SUBSCRIPTION MODAL -->
+    <div id="premium-modal" style="display: none;">
+        <div class="pixel-box modal-content highlight">
+            <h2>PRO SUBSCRIPTION</h2>
+            <ul class="pixel-list">
+                <li>[+] UNLIMITED COIN TRACKING</li>
+                <li>[+] INSTANT 1-SECOND SYNC</li>
+                <li>[+] P&L GRAPHS (IN DEV)</li>
+                <li>[+] ADVANCED P&L ALERTS</li>
             </ul>
-            <div class="price-tag">€19 <span>навсегда</span></div>
-            <button class="pay-btn" id="pay-crypto-btn">Оплатить в Crypto</button>
-            <div class="pay-note">BTC / ETH / USDT принимаются</div>
+            <p style="color:var(--accent-yellow)"><strong>30-DAY PASS: €19 EUR</strong></p>
+            <p style="font-size:0.6rem; color:#888;">Payments via Crypto (BTC, ETH, USDT, Native)</p>
+            <button id="pay-crypto-btn" class="pixel-btn blue" style="width:100%; margin-top:20px;">PAY NOW WITH CRYPTO</button>
+            <button class="pixel-btn red" id="close-modal-btn" style="width:100%; margin-top:10px;">[X] CANCEL</button>
         </div>
     </div>
 
-    <!-- Payment Success Modal -->
-    <div id="success-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-            <div class="modal-icon">🎉</div>
-            <h3>Платёж получен!</h3>
-            <p>Premium активирован. Перезагрузи страницу.</p>
-            <button class="pay-btn" onclick="location.reload()">Готово</button>
-        </div>
+    <!-- NOTIFICATION MODAL -->
+    <div id="notification-modal" style="display: none;" class="pixel-box highlight" style="position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:10000; background:rgba(0,0,0,0.9)">
+        <p id="notification-text"></p>
     </div>
 
-    <script>
-        const NOWPAYMENTS_KEY = "YOUR_NOWPAYMENTS_KEY"; // Заменить в config.json
-        const PREMIUM_PRICE = 19;
-    </script>
     <script src="app.js"></script>
     <script src="payment.js"></script>
 </body>
