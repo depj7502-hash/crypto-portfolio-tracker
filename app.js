@@ -1,6 +1,5 @@
 /**
- * APP.JS — Portfolio Tracker
- * Реальные цены с CoinGecko (бесплатно, без лимитов для малых объёмов)
+ * APP.JS — Portfolio Tracker (English, Pixel Premium, €19/mo)
  */
 
 const COIN_MAP = {
@@ -16,15 +15,36 @@ let assets = JSON.parse(localStorage.getItem('portfolio_assets') || '[]');
 let priceCache = {};
 let lastUpdate = null;
 
+// Premium Check
+function isPremium() {
+    const expiry = localStorage.getItem('premium_expiry');
+    if (!expiry) return false;
+    return new Date().getTime() < parseInt(expiry);
+}
+
+function updatePremiumUI() {
+    const box = document.getElementById('premium-ad-box');
+    if (isPremium()) {
+        const daysLeft = Math.ceil((parseInt(localStorage.getItem('premium_expiry')) - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        box.innerHTML = `<p>STATUS: <span style="color:#39ff14">PRO ACTIVE</span></p><p style="font-size:0.6rem">${daysLeft} DAYS REMAINING</p>`;
+    }
+}
+
 function save() {
     localStorage.setItem('portfolio_assets', JSON.stringify(assets));
 }
 
+// Show notification
+function showStatus(text) {
+    const el = document.getElementById('notification-modal');
+    document.getElementById('notification-text').innerText = text;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 3000);
+}
+
 async function fetchPrices(symbols) {
     if (!symbols.length) return {};
-
     const ids = symbols.map(s => COIN_MAP[s.toLowerCase()] || s.toLowerCase()).join(',');
-
     try {
         const r = await fetch(
             `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`,
@@ -33,7 +53,7 @@ async function fetchPrices(symbols) {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return await r.json();
     } catch (e) {
-        console.warn('Price fetch failed, using cache', e);
+        console.warn('Price fetch failed', e);
         return priceCache;
     }
 }
@@ -44,8 +64,10 @@ function getPrice(data, symbol) {
 }
 
 async function render() {
+    updatePremiumUI();
+
     if (!assets.length) {
-        document.getElementById('assets-container').innerHTML = '<p class="empty-state">Добавь первый актив выше 👆</p>';
+        document.getElementById('assets-container').innerHTML = '<p class="empty-state">NO ASSETS DETECTED. INITIALIZE ABOVE.</p>';
         document.getElementById('total-balance').innerText = '$0.00';
         return;
     }
@@ -57,7 +79,6 @@ async function render() {
     const container = document.getElementById('assets-container');
     container.innerHTML = '';
     let total = 0;
-    let totalChange = 0;
     let totalPrev = 0;
 
     assets.forEach((asset, idx) => {
@@ -83,7 +104,7 @@ async function render() {
                 <div class="asset-value">$${val.toLocaleString('en-US', {maximumFractionDigits: 2})}</div>
                 <div class="asset-price ${changeClass}">${changeSign}${change24h.toFixed(2)}%</div>
             </div>
-            <button class="delete-btn" data-idx="${idx}" title="Удалить">✕</button>
+            <button class="delete-btn" data-idx="${idx}" title="DELETE">[X]</button>
         `;
         container.appendChild(row);
     });
@@ -93,13 +114,12 @@ async function render() {
     const totalChangeAmt = totalPrev > 0 ? ((total - totalPrev) / totalPrev) * 100 : 0;
     const changeEl = document.getElementById('balance-change');
     changeEl.className = `change ${totalChangeAmt >= 0 ? 'up' : 'down'}`;
-    changeEl.innerText = `${totalChangeAmt >= 0 ? '+' : ''}${totalChangeAmt.toFixed(2)}% за 24ч`;
+    changeEl.innerText = `${totalChangeAmt >= 0 ? '+' : ''}${totalChangeAmt.toFixed(2)}% (24H)`;
 
     lastUpdate = new Date();
     document.getElementById('last-update').innerText =
-        `Обновлено: ${lastUpdate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+        `LAST UPDATE: ${lastUpdate.toLocaleTimeString('en-US', { hour12: false })}`;
 
-    // Delete handlers
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             assets.splice(parseInt(btn.dataset.idx), 1);
@@ -110,6 +130,13 @@ async function render() {
 }
 
 document.getElementById('add-btn').addEventListener('click', () => {
+    // Check Free limit
+    if (!isPremium() && assets.length >= 3) {
+        document.getElementById('premium-modal').style.display = 'flex';
+        showStatus("FREE TIER LIMIT REACHED (3 COINS)");
+        return;
+    }
+
     const symbol = document.getElementById('asset-name').value.trim().toLowerCase();
     const amount = parseFloat(document.getElementById('asset-amount').value);
 
@@ -118,7 +145,6 @@ document.getElementById('add-btn').addEventListener('click', () => {
         return;
     }
 
-    // Проверяем, есть ли уже такой актив — если да, добавляем кол-во
     const existing = assets.find(a => a.symbol === symbol);
     if (existing) {
         existing.amount += amount;
@@ -132,18 +158,23 @@ document.getElementById('add-btn').addEventListener('click', () => {
     render();
 });
 
-// Enter key support
 document.getElementById('asset-amount').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('add-btn').click();
 });
 
-// Premium modal
-document.getElementById('upgrade-btn').addEventListener('click', () => {
-    document.getElementById('premium-modal').style.display = 'flex';
+const upgradeBtn = document.getElementById('upgrade-btn');
+if (upgradeBtn) {
+    upgradeBtn.addEventListener('click', () => {
+        document.getElementById('premium-modal').style.display = 'flex';
+    });
+}
+
+document.getElementById('close-modal-btn').addEventListener('click', () => {
+    document.getElementById('premium-modal').style.display = 'none';
 });
 
-// Auto-refresh every 60s
-setInterval(render, 60000);
+// Auto-refresh: 1s for PRO, 60s for FREE
+setInterval(render, isPremium() ? 1000 : 60000);
 
 // Init
 render();
