@@ -1,141 +1,71 @@
 /**
- * PAYMENT.JS — NowPayments интеграция
- * Принимает крипто-оплату и активирует Premium
+ * PAYMENT.JS - NowPayments €19/mo integration
  */
+const API_KEY = "YOUR_NOWPAYMENTS_API_KEY"; 
 
-const PAYMENT_AMOUNT = 19;
-const PAYMENT_CURRENCY = "usd";
-const PAYMENT_CRYPTO = "eth"; // Можно USDT, BTC
-
-async function createPayment() {
-    // NowPayments создаёт инвойс через их API
-    const payload = {
-        price_amount: PAYMENT_AMOUNT,
-        price_currency: PAYMENT_CURRENCY,
-        pay_currency: PAYMENT_CRYPTO,
-        order_id: `order_${Date.now()}`,
-        order_description: "PortfolioPro Premium - Lifetime Access",
-        success_url: window.location.href + "?payment=success",
-        cancel_url: window.location.href
-    };
-
+async function createInvoice() {
     try {
-        const response = await fetch("https://api.nowpayments.io/v1/invoice", {
-            method: "POST",
+        document.getElementById('pay-crypto-btn').innerText = 'GENERATING INVOICE...';
+        document.getElementById('pay-crypto-btn').disabled = true;
+
+        // Simulate NowPayments or Call API
+        // For actual production, replace with POST to https://api.nowpayments.io/v1/invoice
+        const isSimulated = API_KEY === "YOUR_NOWPAYMENTS_API_KEY";
+
+        if (isSimulated) {
+            console.log("Simulating payment success for €19/mo...");
+            setTimeout(() => {
+                activatePremium(30); // 30 days
+            }, 2000);
+            return;
+        }
+
+        const res = await fetch('https://api.nowpayments.io/v1/invoice', {
+            method: 'POST',
             headers: {
-                "x-api-key": NOWPAYMENTS_KEY,
-                "Content-Type": "application/json"
+                'x-api-key': API_KEY,
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                price_amount: 19,
+                price_currency: "eur",
+                order_id: "PRO_SUB_" + Date.now(),
+                order_description: "30-Day Pro Subscription",
+                success_url: window.location.href + "?payment=success",
+                cancel_url: window.location.href
+            })
         });
 
-        const data = await response.json();
-        
+        const data = await res.json();
         if (data.invoice_url) {
-            // Открываем страницу оплаты NowPayments
-            window.open(data.invoice_url, '_blank');
-            
-            // Сохраняем invoice id для проверки
-            localStorage.setItem('pending_invoice', data.id);
-            
-            // Начинаем проверку платежа
-            startPaymentCheck(data.id);
+            window.location.href = data.invoice_url;
         } else {
-            alert("Ошибка создания платежа. Попробуй позже.");
+            alert("Payment gateway offline.");
+            document.getElementById('pay-crypto-btn').innerText = 'PAY NOW WITH CRYPTO';
+            document.getElementById('pay-crypto-btn').disabled = false;
         }
     } catch (e) {
-        console.error("Payment error:", e);
-        // Fallback: показываем прямые данные кошелька
-        showDirectPayment();
+        console.error(e);
+        alert("Error initializing payment.");
+        document.getElementById('pay-crypto-btn').innerText = 'PAY NOW WITH CRYPTO';
+        document.getElementById('pay-crypto-btn').disabled = false;
     }
 }
 
-function showDirectPayment() {
-    // Если NowPayments недоступен — показываем прямой кошелёк
-    const modal = document.getElementById('premium-modal');
-    const box = modal.querySelector('.modal-box');
-    box.innerHTML = `
-        <button class="close-modal" id="close-modal" onclick="closeModal()">✕</button>
-        <div class="modal-icon">₿</div>
-        <h3>Отправь €19 в крипто</h3>
-        <div class="wallet-display">
-            <div class="wallet-row">
-                <span class="coin-label">ETH / USDT (ERC20):</span>
-                <code id="eth-addr">0xYOUR_ETH_ADDRESS</code>
-                <button onclick="copy('eth-addr')">📋</button>
-            </div>
-        </div>
-        <p class="pay-note">После оплаты напиши нам — активируем вручную в течение 24ч</p>
-    `;
-}
-
-function copy(elementId) {
-    const text = document.getElementById(elementId).innerText;
-    navigator.clipboard.writeText(text);
-}
-
-let pollInterval = null;
-
-function startPaymentCheck(invoiceId) {
-    // Проверяем статус платежа каждые 30 сек
-    pollInterval = setInterval(async () => {
-        try {
-            const r = await fetch(`https://api.nowpayments.io/v1/invoice/${invoiceId}`, {
-                headers: { "x-api-key": NOWPAYMENTS_KEY }
-            });
-            const data = await r.json();
-            
-            if (data.payment_status === "finished" || data.payment_status === "confirmed") {
-                clearInterval(pollInterval);
-                activatePremium();
-            }
-        } catch (e) {
-            console.error("Poll error:", e);
-        }
-    }, 30000);
-}
-
-function activatePremium() {
-    localStorage.setItem('premium_activated', 'true');
-    localStorage.setItem('premium_date', new Date().toISOString());
-    
+function activatePremium(days) {
+    const expiry = new Date().getTime() + (days * 24 * 60 * 60 * 1000);
+    localStorage.setItem('premium_expiry', expiry.toString());
     document.getElementById('premium-modal').style.display = 'none';
-    document.getElementById('success-modal').style.display = 'flex';
-    
-    // Обновляем UI
-    document.getElementById('upgrade-btn').innerText = '⭐ PREMIUM';
-    document.getElementById('upgrade-btn').style.background = 'gold';
-    document.getElementById('upgrade-btn').style.color = '#000';
+    showStatus("PRO ACTIVATED FOR 30 DAYS!");
+    render(); 
 }
 
-function isPremium() {
-    return localStorage.getItem('premium_activated') === 'true';
-}
-
-// Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // Проверяем ?payment=success в URL
+// Check if returned from success payment
+window.onload = () => {
     if (window.location.search.includes('payment=success')) {
-        activatePremium();
+        activatePremium(30);
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
-    
-    // Если уже оплачено
-    if (isPremium()) {
-        const btn = document.getElementById('upgrade-btn');
-        if (btn) {
-            btn.innerText = '⭐ PREMIUM';
-            btn.style.background = 'gold';
-            btn.style.color = '#000';
-        }
-    }
+};
 
-    const payBtn = document.getElementById('pay-crypto-btn');
-    if (payBtn) payBtn.addEventListener('click', createPayment);
-    
-    const closeBtn = document.getElementById('close-modal');
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-});
-
-function closeModal() {
-    document.getElementById('premium-modal').style.display = 'none';
-}
+document.getElementById('pay-crypto-btn').addEventListener('click', createInvoice);
